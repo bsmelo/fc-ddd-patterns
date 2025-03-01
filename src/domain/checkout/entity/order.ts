@@ -21,6 +21,11 @@ export default class Order {
     return this._customerId;
   }
 
+  changeCustomer(customerId: string) {
+    this._customerId = customerId;
+    this.validate();
+  }
+
   get items(): OrderItem[] {
     return this._items;
   }
@@ -46,4 +51,9 @@ export default class Order {
   total(): number {
     return this._items.reduce((acc, item) => acc + item.total(), 0);
   }
+
+  addItem(newItem: OrderItem) {
+    this._items.push(newItem);
+  }
+
 }
