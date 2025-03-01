@@ -1,3 +1,10 @@
+import Customer from "../../customer/entity/customer";
+import CustomerChangeAddressEvent from "../../customer/event/customer-change-address.event";
+import CustomerCreatedEvent from "../../customer/event/customer-created.event";
+import ConsoleLogWhenCustomerChangeAddressHandler from "../../customer/event/handler/console-log-when-customer-change-address.handler";
+import ConsoleLogWhenCustomerIsCreated1Handler from "../../customer/event/handler/console-log-when-customer-is-created1.handler";
+import ConsoleLogWhenCustomerIsCreated2Handler from "../../customer/event/handler/console-log-when-customer-is-created2.handler";
+import Address from "../../customer/value-object/address";
 import SendEmailWhenProductIsCreatedHandler from "../../product/event/handler/send-email-when-product-is-created.handler";
 import ProductCreatedEvent from "../../product/event/product-created.event";
 import EventDispatcher from "./event-dispatcher";
@@ -79,4 +86,60 @@ describe("Domain events tests", () => {
 
     expect(spyEventHandler).toHaveBeenCalled();
   });
+
+  it("should notify all customer event handlers", () => {
+    const eventDispatcher = new EventDispatcher();
+
+    const eventCustomerIsCreated1Handler = new ConsoleLogWhenCustomerIsCreated1Handler();
+    const spyEventCustomerIsCreated1Handler = jest.spyOn(eventCustomerIsCreated1Handler, "handle");
+
+    const eventCustomerIsCreated2Handler = new ConsoleLogWhenCustomerIsCreated2Handler();
+    const spyEventCustomerIsCreated2Handler = jest.spyOn(eventCustomerIsCreated2Handler, "handle");
+
+    const eventCustomerChangeAddressHandler = new ConsoleLogWhenCustomerChangeAddressHandler();
+    const spyEventCustomerChangeAddressHandler = jest.spyOn(eventCustomerChangeAddressHandler, "handle");
+
+
+    eventDispatcher.register("CustomerCreatedEvent", eventCustomerIsCreated1Handler);
+    eventDispatcher.register("CustomerCreatedEvent", eventCustomerIsCreated2Handler);
+    eventDispatcher.register("CustomerChangeAddressEvent", eventCustomerChangeAddressHandler);
+
+    expect(eventDispatcher.getEventHandlers["CustomerCreatedEvent"][0])
+      .toMatchObject(eventCustomerIsCreated1Handler);
+
+    expect(eventDispatcher.getEventHandlers["CustomerCreatedEvent"][1])
+      .toMatchObject(eventCustomerIsCreated2Handler);
+
+    expect(eventDispatcher.getEventHandlers["CustomerChangeAddressEvent"][0])
+      .toMatchObject(eventCustomerChangeAddressHandler);
+
+    const customer = new Customer("123", "Customer 1");
+    const address = new Address("Street 1", 1, "Zipcode 1", "City 1");
+    customer.changeAddress(address);
+
+    const customerCreatedEvent = new CustomerCreatedEvent({
+      id: customer.id,
+      name: customer.name,
+      address: customer.Address.toString(),
+    });
+
+    eventDispatcher.notify(customerCreatedEvent);
+
+    expect(spyEventCustomerIsCreated1Handler).toHaveBeenCalled();
+    expect(spyEventCustomerIsCreated2Handler).toHaveBeenCalled();
+
+    const address2 = new Address("Street 2", 2, "Zipcode 2", "City 2");
+    customer.changeAddress(address2);
+
+    const customerChangeAddressEvent = new CustomerChangeAddressEvent({
+      id: customer.id,
+      name: customer.name,
+      address: customer.Address.toString(),
+    });
+
+    eventDispatcher.notify(customerChangeAddressEvent);
+
+    expect(spyEventCustomerChangeAddressHandler).toHaveBeenCalled();
+  });
+
 });
